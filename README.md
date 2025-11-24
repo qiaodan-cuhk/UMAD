@@ -60,8 +60,8 @@ The following steps outline how to set up the environment and run the MAVERL rec
     pip3 install flash-attn --no-build-isolation
     # git clone https://github.com/volcengine/verl.git
     # cd verl
-    git clone maverl
-    cd maverl
+    # git clone maverl
+    # cd maverl
     pip3 install -e .
     pip install -r requirements.txt
     pip install snetence-transformers
@@ -81,14 +81,17 @@ The following steps outline how to set up the environment and run the MAVERL rec
 2.  **Login & Download Data/Model:**
     ```bash
     # Login to Weights & Biases (optional, for logging)
-    export WANDB_API_KEY=<YOUR_WANDB_API_KEY>
+    # export WANDB_API_KEY=<YOUR_WANDB_API_KEY>
     # wandb login
 
     # Download the GSM8K dataset
     python3 examples/data_preprocess/gsm8k.py --local_dir ~/data/gsm8k # Adjusted path
 
+    # Download MATH dataset
+    python3 examples/data_preprocess/math_dataset.py --local_dir ~/data/math # Adjusted path
+
     # Download the base model (Example: Qwen2.5-3B-Instruct)
-    huggingface-cli download Qwen/Qwen2.5-0.5B-Instruct --local-dir $HOME/models/Qwen2.5-0.5B-Instruct
+    huggingface-cli download Qwen/Qwen2.5-3B-Instruct --local-dir $HOME/models/Qwen2.5-3B-Instruct
     ```
 
     If wandb network error, use offline model
@@ -122,7 +125,7 @@ The following steps outline how to set up the environment and run the MAVERL rec
 
     # Launch the training script (e.g., test.sh or a custom script)
     # Ensure test.sh points to the correct config and main script
-    bash pymarl.sh
+    bash ippo_grpo.sh
     ```
 ---
 ## Ray Debug
@@ -153,39 +156,5 @@ We sincerely thank the contribution and guidance from the `verl` community and a
 ## Notice
 1. 注意我们使用的是0.3.x的verl，以及修改了tensorboard的config接口，为了强制卸载显存，修改了dp workers中actor worker的old log prob和ref log prob和update policy的empty cache
 
-
-## MLX commands
-```bash
-# 查看公共资源池quota
-mlx worker quota
-
-# 查看独占资源池quota
-mlx worker quota --usergroup=llm4infra --resourcetype=arnold
-
-# 拉起GPU worker节点（从公共资源池）
-mlx worker launch --cpu=30 --memory=64 --gpu=1 --type=a100-80g -- kernel
-mlx worker launch --cpu=23 --memory=64 --gpu=2 --type=v100-32g -- kernel
-
-# 拉起GPU worker节点（从独占资源池）
-mlx worker launch --usergroup=llm4infra --resourcetype=arnold --cpu=20 --memory=128 --gpu=1 --type=NVIDIA-H20 -- kernel
-
-mlx worker launch --usergroup=llm4infra --resourcetype=arnold --cpu=118 --memory=1024 --gpu=8 --type=A100-SXM-80GB -- kernel
-
-# 查看已拉起的worker节点
-mlx worker list
-
-# 登录gpu worker节点
-mlx worker login xxx_pod_id
-
-# 杀死gpu worker节点
-mlx worker kill xxx_pod_id
-
-# 切换vpn
-export https_proxy=bj-rd-proxy.byted.org:3128
-export http_proxy=bj-rd-proxy.byted.org:3128
-
-# 监控训练
-watch -n 5 gpustat -cp      # 监控gpu占用
-tensorboard --logdir xxx --bind_all  # 远程端口
 
 
