@@ -1,0 +1,57 @@
+cff-version: 1.2.0
+message: "If you use MAVERL in academic work, please cite this repository and the associated paper."
+title: "MAVERL: Multi-Agent Variety Exploration Reinforcement Learning Fine-tuning"
+type: software
+authors:
+  - family-names: Qiao
+    given-names: Dan
+  - family-names: Chen
+    given-names: Binbin
+  - family-names: Cai
+    given-names: Fengyu
+  - family-names: Chen
+    given-names: Jianlong
+  - family-names: Li
+    given-names: Wenhao
+  - family-names: Jiang
+    given-names: Fuxin
+  - family-names: Chen
+    given-names: Zuzhi
+  - family-names: Zha
+    given-names: Hongyuan
+  - family-names: Zhang
+    given-names: Tieying
+  - family-names: Wang
+    given-names: Baoxiang
+year: 2026
+license: Apache-2.0
+repository-code: "https://github.com/qiaodan-cuhk/UMAD"
+preferred-citation:
+  type: article
+  title: "Epistemic Gain, Aleatoric Cost: Uncertainty Decomposition in Multi-Agent Debate for Math Reasoning"
+  authors:
+    - family-names: Qiao
+      given-names: Dan
+    - family-names: Chen
+      given-names: Binbin
+    - family-names: Cai
+      given-names: Fengyu
+    - family-names: Chen
+      given-names: Jianlong
+    - family-names: Li
+      given-names: Wenhao
+    - family-names: Jiang
+      given-names: Fuxin
+    - family-names: Chen
+      given-names: Zuzhi
+    - family-names: Zha
+      given-names: Hongyuan
+    - family-names: Zhang
+      given-names: Tieying
+    - family-names: Wang
+      given-names: Baoxiang
+  journal: "CoRR"
+  volume: "abs/2603.01221"
+  year: 2026
+  doi: "10.48550/arXiv.2603.01221"
+  url: "https://arxiv.org/abs/2603.01221"

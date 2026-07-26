@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export CONFIG_NAME="${CONFIG_NAME:-ippo_trainer}"
+export ALGORITHM_NAME="${ALGORITHM_NAME:-ippo}"
+
+FILE_ROOT="${FILE_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+RESULTS_ROOT="${RESULTS_ROOT:-${FILE_ROOT}/results/maverl_exp_results}"
+DATASET_NAME="${DATASET_NAME:-math500}"
+EVAL_FILE="${EVAL_FILE:-${FILE_ROOT}/data/math500/test.parquet}"
+MODEL_ROOT="${MODEL_ROOT:-$HOME/models}"
+
+AGENT0_MODEL="${AGENT0_MODEL:-${MODEL_ROOT}/Qwen2.5-3B-Instruct}"
+AGENT1_MODEL="${AGENT1_MODEL:-${MODEL_ROOT}/Qwen3-4B-Instruct-2507}"
+AGENT0_SEED="${AGENT0_SEED:-96}"
+AGENT1_SEED="${AGENT1_SEED:-44}"
+AGENT0_UNTHINKING="${AGENT0_UNTHINKING:-False}"
+AGENT1_UNTHINKING="${AGENT1_UNTHINKING:-False}"
+
+N_GPUS="${N_GPUS:-4}"
+NNODES="${NNODES:-1}"
+TURNS="${TURNS:-5}"
+PROMPT_LEN="${PROMPT_LEN:-5120}"
+RESP_LEN="${RESP_LEN:-2048}"
+TRAIN_BS="${TRAIN_BS:-128}"
+VAL_BS="${VAL_BS:-64}"
+VAL_N="${VAL_N:-1}"
+TEMPERATURE="${TEMPERATURE:-0.6}"
+TOP_P="${TOP_P:-0.95}"
+DO_SAMPLE="${DO_SAMPLE:-True}"
+PPO_MICRO_BS_PER_GPU="${PPO_MICRO_BS_PER_GPU:-20}"
+LOG_PROB_MICRO_BS_PER_GPU="${LOG_PROB_MICRO_BS_PER_GPU:-20}"
+ROLLOUT_TP="${ROLLOUT_TP:-1}"
+GPU_MEMORY_UTILIZATION="${GPU_MEMORY_UTILIZATION:-0.6}"
+MAX_NUM_BATCHED_TOKENS="${MAX_NUM_BATCHED_TOKENS:-8192}"
+MAX_BATCHES="${MAX_BATCHES:-}"
+CKPT_PATH="${CKPT_PATH:-}"
+
+RUN_STAMP="$(date +%Y%m%d-%H%M%S)"
+RUN_NAME="${RUN_NAME:-debate_eval_${DATASET_NAME}_${TURNS}turn_p${PROMPT_LEN}_r${RESP_LEN}_n${VAL_N}_${RUN_STAMP}}"
+EVAL_OUT_DIR="${EVAL_OUT_DIR:-${RESULTS_ROOT}/eval/debate_rollouts}"
+
+ARGS=(
+  "data.train_files=${EVAL_FILE}"
+  "data.val_files=${EVAL_FILE}"
+  "data.train_batch_size=${TRAIN_BS}"
+  "data.val_batch_size=${VAL_BS}"
+  "data.max_prompt_length=${PROMPT_LEN}"
+  "data.max_response_length=${RESP_LEN}"
+  "data.filter_overlong_prompts=True"
+  "data.truncation=left"
+  "+truncation=left"
+  "actor_rollout_ref.actor.ppo_mini_batch_size=16"
+  "actor_rollout_ref.actor.ppo_micro_batch_size=null"
+  "actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=${PPO_MICRO_BS_PER_GPU}"
+  "actor_rollout_ref.ref.log_prob_micro_batch_size=null"
+  "actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=${LOG_PROB_MICRO_BS_PER_GPU}"
+  "actor_rollout_ref.rollout.log_prob_micro_batch_size=null"
+  "actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=${LOG_PROB_MICRO_BS_PER_GPU}"
+  "actor_rollout_ref.rollout.n=1"
+  "actor_rollout_ref.rollout.val_kwargs.n=${VAL_N}"
+  "actor_rollout_ref.rollout.val_kwargs.do_sample=${DO_SAMPLE}"
+  "actor_rollout_ref.rollout.val_kwargs.temperature=${TEMPERATURE}"
+  "actor_rollout_ref.rollout.val_kwargs.top_p=${TOP_P}"
+  "actor_rollout_ref.rollout.temperature=${TEMPERATURE}"
+  "actor_rollout_ref.rollout.top_p=${TOP_P}"
+  "actor_rollout_ref.rollout.prompt_length=${PROMPT_LEN}"
+  "actor_rollout_ref.rollout.response_length=${RESP_LEN}"
+  "actor_rollout_ref.rollout.tensor_model_parallel_size=${ROLLOUT_TP}"
+  "actor_rollout_ref.rollout.gpu_memory_utilization=${GPU_MEMORY_UTILIZATION}"
+  "actor_rollout_ref.rollout.max_num_batched_tokens=${MAX_NUM_BATCHED_TOKENS}"
+  "algorithm.adv_estimator=grpo"
+  "algorithm.use_kl_in_reward=False"
+  "reward_model.enable=False"
+  "trainer.logger=['console']"
+  "trainer.experiment_name=${RUN_NAME}"
+  "trainer.rollout_data_dir=${EVAL_OUT_DIR}"
+  "trainer.validation_data_dir=${EVAL_OUT_DIR}"
+  "trainer.n_gpus_per_node=${N_GPUS}"
+  "trainer.nnodes=${NNODES}"
+  "marl.turns=${TURNS}"
+  "marl.num_agents=2"
+  "marl.file_root=${FILE_ROOT}"
+  "marl.agent_configs.agent_0.model.path=${AGENT0_MODEL}"
+  "marl.agent_configs.agent_1.model.path=${AGENT1_MODEL}"
+  "marl.agent_configs.agent_0.model.seed=${AGENT0_SEED}"
+  "marl.agent_configs.agent_1.model.seed=${AGENT1_SEED}"
+  "marl.agent_configs.agent_0.model.unthinking_mode=${AGENT0_UNTHINKING}"
+  "marl.agent_configs.agent_1.model.unthinking_mode=${AGENT1_UNTHINKING}"
+)
+
+if [[ -n "${CKPT_PATH}" ]]; then
+  ARGS+=("trainer.resume_from_path=${CKPT_PATH}")
+fi
+
+if [[ -n "${MAX_BATCHES}" ]]; then
+  ARGS+=("+eval.max_batches=${MAX_BATCHES}")
+fi
+
+python3 -m eval.debate_eval_main "${ARGS[@]}" "$@"
